@@ -5,7 +5,7 @@
 
 #define TIMER_MODE 0
 #define AIR_QUALITY_MODE 1
-#define WARNING_LEVEL 1200 // 공기질 경고 농도
+#define WARNING_LEVEL 900 // 공기질 경고 농도 (0~1024)
 
 unsigned char fnd_digit[10] = {
     0x3F, 0x06, 0x5B, 0x4F, 0x66, 
@@ -13,7 +13,7 @@ unsigned char fnd_digit[10] = {
 unsigned char fnd_select[4] = {0x08, 0x04, 0x02, 0x01}; // FND 선택 패턴
 
 volatile int mode = TIMER_MODE; 
-unsigned int timer_seconds = 60;
+unsigned int timer_seconds = 3600;
 int air_quality = 0;
 
 volatile unsigned int count = 0; // 프로그램 전체 카운트
@@ -87,7 +87,7 @@ int main(void) {
     DDRA = 0xFF; // 포트 A를 출력으로 설정 LED
     DDRE = 0x00; // 포트 E를 입력으로 설정 스위치
     PORTE |= (1 << PE4) | (1 << PE5); // INT4, INT5 풀업 저항 활성화
-    DDRB |= (1 << PB4); //부저
+    DDRB |= (1 << PB4); // 부저
     DDRC = 0xFF; // 포트 C를 FND 데이터 출력으로 설정
     DDRG = 0x0F; // 포트 G를 FND 선택으로 설정 
     DDRF = 0x00; // 포트 F를 입력으로 설정 (ADC)
@@ -115,15 +115,24 @@ int main(void) {
             fnd_print(air_quality, 1);
         }
 
-        if (air_quality > WARNING_LEVEL) {
+        if (timer_seconds == 0 || air_quality > WARNING_LEVEL) {
             buzzer_timer = 100; // 부저 타이머 설정 (100ms)
         }
 
         if (buzzer_timer > 0) {
-            PORTB |= (1 << PB4); // 부저 ON
-            _delay_ms(1);
-            PORTB &= ~(1 << PB4); // 부저 OFF
-            _delay_ms(1);
+            if (timer_seconds == 0) {
+                // 타이머 모드: 500Hz
+                PORTB |= (1 << PB4); // 부저 ON
+                _delay_us(1000); // 500Hz 주파수
+                PORTB &= ~(1 << PB4); // 부저 OFF
+                _delay_us(1000); // 500Hz 주파수
+            } else if (air_quality > WARNING_LEVEL) {
+                // 공기질 모드: 2000Hz
+                PORTB |= (1 << PB4); // 부저 ON
+                _delay_us(250); // 2000Hz 주파수
+                PORTB &= ~(1 << PB4); // 부저 OFF
+                _delay_us(250); // 2000Hz 주파수
+            }
             buzzer_timer--;
         }
     }
