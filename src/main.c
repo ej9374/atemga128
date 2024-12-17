@@ -5,7 +5,7 @@
 
 #define TIMER_MODE 0
 #define AIR_QUALITY_MODE 1
-#define WARNING_LEVEL 240 // 공기질 경고 농도 (0~1024)
+#define WARNING_LEVEL 240 // 공기질 경고 농도 (0~1000)
 
 unsigned char fnd_digit[10] = {
     0x3F, 0x06, 0x5B, 0x4F, 0x66, 
