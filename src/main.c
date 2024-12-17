@@ -5,7 +5,7 @@
 
 #define TIMER_MODE 0
 #define AIR_QUALITY_MODE 1
-#define WARNING_LEVEL 900 // 공기질 경고 농도 (0~1024)
+#define WARNING_LEVEL 240 // 공기질 경고 농도 (0~1024)
 
 unsigned char fnd_digit[10] = {
     0x3F, 0x06, 0x5B, 0x4F, 0x66, 
@@ -83,6 +83,12 @@ uint16_t adc_read(uint8_t ch) {
     return ADC;
 }
 
+float convert_to_ppm(uint16_t adc_value) {
+    float voltage = adc_value * (5.0 / 1024.0); // ADC 값을 전압으로 변환 (0~5V)
+    float ppm = (voltage - 0.1) / 0.02; // 전압을 농도로 변환 (기준 전압: 0.1V, 스케일링 팩터: 0.02V/ppm)
+    return ppm;
+}
+
 int main(void) {
     DDRA = 0xFF; // 포트 A를 출력으로 설정 LED
     DDRE = 0x00; // 포트 E를 입력으로 설정 스위치
@@ -107,15 +113,16 @@ int main(void) {
 
     while (1) {
         air_quality = adc_read(0); // ADC0 채널에서 공기질 값 읽기
+        float air_quality_ppm = convert_to_ppm(air_quality); // 공기질 값을 농도로 변환
 
         // FND 출력
         if (mode == TIMER_MODE) {
             fnd_print(timer_seconds, 0);
         } else if (mode == AIR_QUALITY_MODE) {
-            fnd_print(air_quality, 1);
+            fnd_print((int)air_quality_ppm, 1); // 농도를 정수로 변환하여 FND에 출력
         }
 
-        if (timer_seconds == 0 || air_quality > WARNING_LEVEL) {
+        if (timer_seconds == 0 || air_quality_ppm > WARNING_LEVEL) {
             buzzer_timer = 100; // 부저 타이머 설정 (100ms)
         }
 
@@ -126,7 +133,7 @@ int main(void) {
                 _delay_us(1000); // 500Hz 주파수
                 PORTB &= ~(1 << PB4); // 부저 OFF
                 _delay_us(1000); // 500Hz 주파수
-            } else if (air_quality > WARNING_LEVEL) {
+            } else if (air_quality_ppm > WARNING_LEVEL) {
                 // 공기질 모드: 2000Hz
                 PORTB |= (1 << PB4); // 부저 ON
                 _delay_us(250); // 2000Hz 주파수
