@@ -17,7 +17,6 @@ unsigned int timer_seconds = 3600;
 int air_quality = 0;
 
 volatile unsigned int count = 0; // 프로그램 전체 카운트
-volatile unsigned int switch1_start_time = 0; // 스위치 1 눌린 시간 기록
 volatile unsigned int buzzer_timer = 0; // 부저 타이머
 
 /* switch 1 눌렀을때 */
@@ -90,13 +89,12 @@ float convert_to_ppm(uint16_t adc_value) {
 }
 
 int main(void) {
-    DDRA = 0xFF; // 포트 A를 출력으로 설정 LED
+    DDRF = 0x00; // 포트 A를 입력으로 설정 (ADC)
     DDRE = 0x00; // 포트 E를 입력으로 설정 스위치
     PORTE |= (1 << PE4) | (1 << PE5); // INT4, INT5 풀업 저항 활성화
     DDRB |= (1 << PB4); // 부저
     DDRC = 0xFF; // 포트 C를 FND 데이터 출력으로 설정
     DDRG = 0x0F; // 포트 G를 FND 선택으로 설정 
-    DDRF = 0x00; // 포트 F를 입력으로 설정 (ADC)
 
     // Timer1 설정: CTC 모드, 프리스케일러 1024, 1초 주기
     TCCR1B |= (1 << WGM12); // CTC 모드 설정
